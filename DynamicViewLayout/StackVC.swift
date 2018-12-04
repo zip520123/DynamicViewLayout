@@ -14,6 +14,7 @@ let viewHightlightColor = #colorLiteral(red: 0.2392156869, green: 0.6745098233, 
 let buttonDefaultColor = #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)
 let buttonHightlightColor = #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)
 let buttonTextColor = #colorLiteral(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+let borderColor = #colorLiteral(red: 0.4745098054, green: 0.8392156959, blue: 0.9764705896, alpha: 1)
 class StackVC: UIViewController {
     
 	var x = 0 //column
@@ -21,8 +22,9 @@ class StackVC: UIViewController {
     var disposeBag = DisposeBag()
     var currentView : RandomView?
     var currentButton : UIButton?
-
+	
     var currentStackList : [UIStackView] = []
+    var currentBorderView : UIView?
     override func viewDidLoad() {
         super.viewDidLoad()
         let mainStackView = UIStackView()
@@ -42,6 +44,18 @@ class StackVC: UIViewController {
             columnStack.spacing = 1
             columnStack.distribution = .fillEqually
             mainStackView.addArrangedSubview(columnStack)
+            
+            let borderView = UIView()
+            columnStack.addSubview(borderView)
+            borderView.layer.borderWidth = 3
+            borderView.layer.borderColor = UIColor.clear.cgColor
+            borderView.isUserInteractionEnabled = false
+            borderView.translatesAutoresizingMaskIntoConstraints = false
+            borderView.topAnchor.constraint(equalTo: columnStack.topAnchor).isActive = true
+            borderView.leftAnchor.constraint(equalTo: columnStack.leftAnchor).isActive = true
+            borderView.rightAnchor.constraint(equalTo: columnStack.rightAnchor).isActive = true
+            borderView.bottomAnchor.constraint(equalTo: columnStack.bottomAnchor).isActive = true
+            
             for j in 0..<y{
                 let rowView = RandomView()
                 
@@ -59,17 +73,17 @@ class StackVC: UIViewController {
                 for view in self.currentStackList[i].arrangedSubviews{
                     if view == self.currentView {
                         self.resetView()
+                        
                     }
                 }
                 
             }).disposed(by: disposeBag)
             columnStack.addArrangedSubview(button)
+            columnStack.bringSubview(toFront: borderView)
         }
         
-        let interval = Observable<Int>.interval(5, scheduler: MainScheduler.instance)
-    	interval.map({ (i) -> Int in
-            return i * 10
-        }).subscribe(onNext:{[weak self] in
+        let interval = Observable<Int>.interval(10, scheduler: MainScheduler.instance)
+    	interval.subscribe(onNext:{[weak self] in
             guard let `self` = self else {return}
             self.resetView()
             self.resetButton()
@@ -77,6 +91,7 @@ class StackVC: UIViewController {
             let randomY = Int(arc4random_uniform(UInt32(self.y)))
             print("\($0) rx:\(randomX) , ry:\(randomY)")
             for view in self.currentStackList[randomX].arrangedSubviews {
+                
                 if view.tag == randomY && view.isKind(of: RandomView.self) {
                     self.toggleView(view: view as! RandomView)
                 }
@@ -84,15 +99,24 @@ class StackVC: UIViewController {
                     self.toggleButton(button: view as! UIButton)
                 }
             }
+            for view in self.currentStackList[randomX].subviews {
+                if !(view.isKind(of: UIButton.self) || view.isKind(of: RandomView.self)){
+                    view.layer.borderColor = borderColor.cgColor
+                    self.currentBorderView = view
+                }
+                
+            }
         }).disposed(by:disposeBag )
         
     }
+    
     func toggleView(view : RandomView){
         view.backgroundColor = viewHightlightColor
         view.label.text = "Random"
         currentView = view
     }
     func resetView(){
+        currentBorderView?.layer.borderColor = UIColor.clear.cgColor
         currentView?.label.text = ""
         currentView?.backgroundColor = viewDefaultColor
     }
